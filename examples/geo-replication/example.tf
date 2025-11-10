@@ -9,8 +9,8 @@ data "azurerm_client_config" "current_client_config" {}
 ## Resource group in which all resources will be deployed.
 ##-----------------------------------------------------------------------------
 module "resource_group" {
-  source      = "terraform-az-modules/resource-group/azure"
-  version     = "1.0.0"
+  source      = "terraform-az-modules/resource-group/azurerm"
+  version     = "1.0.3"
   name        = "core"
   environment = "dev"
   location    = "centralus"
@@ -22,8 +22,8 @@ module "resource_group" {
 ## Resource group in Geo Redis will be Deployed
 ##-----------------------------------------------------------------------------
 module "secondary_resource_group" {
-  source      = "terraform-az-modules/resource-group/azure"
-  version     = "1.0.0"
+  source      = "terraform-az-modules/resource-group/azurerm"
+  version     = "1.0.3"
   name        = "geo"
   environment = "dev"
   location    = "eastus"
