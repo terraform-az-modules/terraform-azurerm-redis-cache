@@ -43,4 +43,6 @@ module "redis" {
   secondary_enabled             = true
   secondary_location            = module.secondary_resource_group.resource_group_location
   secondary_resource_group_name = module.secondary_resource_group.resource_group_name
+  enable_private_endpoint       = false
+  enable_diagnostic             = false
 }
