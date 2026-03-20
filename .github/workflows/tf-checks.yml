@@ -12,11 +12,13 @@ jobs:
     uses: clouddrove/github-shared-workflows/.github/workflows/tf-checks.yml@master
     with:
       working_directory: './examples/complete/'
+      provider: none
 
   geo-replication:
     uses: clouddrove/github-shared-workflows/.github/workflows/tf-checks.yml@master
     with:
       working_directory: './examples/geo-replication/'
+      provider: none
 
   # TFLint Job
   tf-lint:
