@@ -79,9 +79,9 @@ resource "azurerm_redis_linked_server" "main" {
   server_role                 = var.server_role
 }
 
-##----------------------------------------------------------------------------- 
+##-----------------------------------------------------------------------------
 ## Redis Cache resource that manages the Azure Redis Cache Policy
-##----------------------------------------------------------------------------- 
+##-----------------------------------------------------------------------------
 resource "azurerm_redis_cache_access_policy" "main" {
   count          = var.enable ? 1 : 0
   name           = var.resource_position_prefix ? format("arc-policy-%s", local.name) : format("%s-arc-policy", local.name)

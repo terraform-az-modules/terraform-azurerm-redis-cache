@@ -1,5 +1,5 @@
 ##-----------------------------------------------------------------------------
-## Azure Redis Cache 
+## Azure Redis Cache
 ##-----------------------------------------------------------------------------
 output "id" {
   value       = try(azurerm_redis_cache.main[0].id, null)
@@ -49,7 +49,7 @@ output "secondary_connection_string" {
 }
 
 ##-----------------------------------------------------------------------------
-## Configuration 
+## Configuration
 ##-----------------------------------------------------------------------------
 output "redis_configuration" {
   value       = try(azurerm_redis_cache.main[0].redis_configuration, null)
@@ -63,7 +63,7 @@ output "maxclients" {
 }
 
 ##-----------------------------------------------------------------------------
-## Access Policy 
+## Access Policy
 ##-----------------------------------------------------------------------------
 output "access_policy_id" {
   value       = try(azurerm_redis_cache_access_policy.main[0].id, null)
@@ -79,7 +79,7 @@ output "firewall_rule_ids" {
 }
 
 ##-----------------------------------------------------------------------------
-## Linked Server 
+## Linked Server
 ##-----------------------------------------------------------------------------
 output "linked_server_id" {
   value       = try(azurerm_redis_linked_server.main[0].id, null)
