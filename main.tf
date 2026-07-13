@@ -84,7 +84,7 @@ resource "azurerm_redis_linked_server" "main" {
 ##-----------------------------------------------------------------------------
 resource "azurerm_redis_cache_access_policy" "main" {
   count          = var.enable ? 1 : 0
-  name           = var.resource_position_prefix ? format("arc-policy-%s", local.name) : format("%s-arc-policy", local.name)
+  name           = var.resource_position_prefix ? format("redis-policy-%s", local.name) : format("%s-redis-policy", local.name)
   redis_cache_id = azurerm_redis_cache.main[count.index].id
   permissions    = var.permissions
 }
@@ -94,17 +94,17 @@ resource "azurerm_redis_cache_access_policy" "main" {
 ##---------------------------------------------------------------------------
 resource "azurerm_private_endpoint" "pep" {
   count               = var.enable && var.enable_private_endpoint ? 1 : 0
-  name                = var.resource_position_prefix ? format("pe-arc-%s", local.name) : format("%s-pe-arc", local.name)
+  name                = var.resource_position_prefix ? format("pe-%s", azurerm_redis_cache.main[0].name) : format("%s-pe", azurerm_redis_cache.main[0].name)
   location            = var.location
   resource_group_name = var.resource_group_name
   subnet_id           = var.subnet_id
   tags                = module.labels.tags
   private_dns_zone_group {
-    name                 = var.resource_position_prefix ? format("dns-zone-group-arc-%s", local.name) : format("%s-dns-zone-group-arc", local.name)
+    name                 = var.resource_position_prefix ? format("dns-zone-group-%s", azurerm_redis_cache.main[0].name) : format("%s-dns-zone-group", azurerm_redis_cache.main[0].name)
     private_dns_zone_ids = [var.private_dns_zone_ids]
   }
   private_service_connection {
-    name                           = var.resource_position_prefix ? format("psc-arc-%s", local.name) : format("%s-psc-arc", local.name)
+    name                           = var.resource_position_prefix ? format("psc-%s", azurerm_redis_cache.main[0].name) : format("%s-psc", azurerm_redis_cache.main[0].name)
     is_manual_connection           = false
     private_connection_resource_id = azurerm_redis_cache.main[0].id
     subresource_names              = ["rediscache"]
@@ -157,7 +157,7 @@ resource "azurerm_redis_cache" "secondary" {
 ##-----------------------------------------------------------------------------
 resource "azurerm_monitor_diagnostic_setting" "arc-diag" {
   count                      = var.enable && var.enable_diagnostic ? 1 : 0
-  name                       = var.resource_position_prefix ? format("diag-log-arc-%s", local.name) : format("%s-diag-log-arc", local.name)
+  name                       = var.resource_position_prefix ? format("diag-log-%s", azurerm_redis_cache.main[0].name) : format("%s-diag-log", azurerm_redis_cache.main[0].name)
   target_resource_id         = azurerm_redis_cache.main[0].id
   storage_account_id         = var.storage_account_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
