@@ -93,4 +93,5 @@ module "redis" {
   user_object_id             = data.azurerm_client_config.current_client_config.object_id
   log_analytics_workspace_id = module.log-analytics.workspace_id
   subnet_id                  = module.subnet.subnet_ids.subnet1
+  enable_private_endpoint    = true
 }
