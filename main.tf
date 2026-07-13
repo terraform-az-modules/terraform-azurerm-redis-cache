@@ -84,7 +84,7 @@ resource "azurerm_redis_linked_server" "main" {
 ##-----------------------------------------------------------------------------
 resource "azurerm_redis_cache_access_policy" "main" {
   count          = var.enable ? 1 : 0
-  name           = var.resource_position_prefix ? format("redis-policy-%s", local.name) : format("%s-arc-policy", local.name)
+  name           = var.resource_position_prefix ? format("redis-policy-%s", local.name) : format("%s-redis-policy", local.name)
   redis_cache_id = azurerm_redis_cache.main[count.index].id
   permissions    = var.permissions
 }
