@@ -2,7 +2,7 @@
   <img width="1024" height="250" alt="image" src="https://clouddrove.s3.ca-central-1.amazonaws.com/Logo/banner.png" />
 </p>
 <h1 align="center">
-    Terraform Azure Managed Redis
+    Terraform Azure Redis Cache
 </h1>
 
 <p align="center" style="font-size: 1.2rem;">
@@ -126,16 +126,3 @@ We have [**50+ Azure Terraform modules**](https://github.com/orgs/terraform-az-m
 - Avoid consuming unversioned or in-progress code.
 
 ---
-
-
-
-
-
-
-
-
-
-
-
-
-

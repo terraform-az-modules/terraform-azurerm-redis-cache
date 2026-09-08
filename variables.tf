@@ -263,16 +263,6 @@ variable "user_object_id" {
   description = "Object ID of the Azure AD user, group, service principal, or managed identity for access policy assignment."
 }
 
-variable "access_policy_assignment_timeouts" {
-  type = object({
-    create = optional(string)
-    read   = optional(string)
-    delete = optional(string)
-  })
-  default     = null
-  description = "Timeouts for the Managed Redis access policy assignment (create/read/delete)."
-}
-
 ##-----------------------------------------------------------------------------
 ## Secondary Managed Redis Configuration
 ##-----------------------------------------------------------------------------

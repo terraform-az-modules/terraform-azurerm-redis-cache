@@ -1,8 +1,8 @@
 <!-- BEGIN_TF_DOCS -->
 
-# Terraform Azure Managed Redis
+# Terraform Azure Redis Cache
 
-This directory contains an example usage of the **terraform-azure-managed-redis**. It demonstrates how to use the module with a minimal configuration.
+This directory contains an example usage of the **terraform-azure-redis-cache**. It demonstrates how to use the module with a minimal configuration.
 
 ---
 
