@@ -1,79 +1,72 @@
 output "id" {
   value       = module.redis.id
-  description = "The ID of the Redis Cache instance"
+  description = "The ID of the Managed Redis instance"
+}
+
+output "name" {
+  value       = module.redis.name
+  description = "The name of the Managed Redis instance"
 }
 
 output "hostname" {
   value       = module.redis.hostname
-  description = "The hostname of the Redis Cache instance"
+  description = "The hostname of the Managed Redis instance"
 }
 
-output "ssl_port" {
-  value       = module.redis.ssl_port
-  description = "The SSL port of the Redis Cache instance"
+output "sku_name" {
+  value       = module.redis.sku_name
+  description = "The SKU name of the Managed Redis instance"
+}
+
+output "location" {
+  value       = module.redis.location
+  description = "The Azure Region of the Managed Redis instance"
+}
+
+output "resource_group_name" {
+  value       = module.redis.resource_group_name
+  description = "The Resource Group of the Managed Redis instance"
+}
+
+output "high_availability_enabled" {
+  value       = module.redis.high_availability_enabled
+  description = "Whether high availability is enabled"
+}
+
+output "public_network_access" {
+  value       = module.redis.public_network_access
+  description = "Public network access setting (Enabled or Disabled)"
+}
+
+output "database_id" {
+  value       = module.redis.database_id
+  description = "The ID of the Managed Redis default database"
 }
 
 output "port" {
   value       = module.redis.port
-  description = "The non-SSL port of the Redis Cache instance"
+  description = "The TCP port of the Managed Redis default database endpoint"
+}
+
+output "default_database" {
+  value       = module.redis.default_database
+  description = "The full default_database block of the Managed Redis instance"
+  sensitive   = true
+}
+
+output "redis_modules" {
+  value       = module.redis.redis_modules
+  description = "Redis modules configured on the default database, including computed version"
 }
 
 output "primary_access_key" {
   value       = module.redis.primary_access_key
-  description = "The primary access key for the Redis Cache instance"
+  description = "The primary access key for the Managed Redis default database"
   sensitive   = true
 }
 
 output "secondary_access_key" {
   value       = module.redis.secondary_access_key
-  description = "The secondary access key for the Redis Cache instance"
+  description = "The secondary access key for the Managed Redis default database"
   sensitive   = true
-}
-
-output "primary_connection_string" {
-  value       = module.redis.primary_connection_string
-  description = "The primary connection string of the Redis Cache instance"
-  sensitive   = true
-}
-
-output "secondary_connection_string" {
-  value       = module.redis.secondary_connection_string
-  description = "The secondary connection string of the Redis Cache instance"
-  sensitive   = true
-}
-
-output "redis_configuration" {
-  value       = module.redis.redis_configuration
-  description = "Redis configuration block applied to the cache instance"
-  sensitive   = true
-}
-
-output "maxclients" {
-  value       = module.redis.maxclients
-  description = "Maximum number of connected clients allowed"
-}
-
-output "access_policy_id" {
-  value       = module.redis.access_policy_id
-  description = "The ID of the Redis Cache Access Policy"
-}
-
-output "firewall_rule_ids" {
-  value       = module.redis.firewall_rule_ids
-  description = "Map of Redis Firewall Rule IDs indexed by rule key"
-}
-
-output "linked_server_id" {
-  value       = module.redis.linked_server_id
-  description = "The ID of the Redis Linked Server"
-}
-
-output "linked_server_name" {
-  value       = module.redis.linked_server_name
-  description = "The name of the Redis Linked Server"
-}
-
-output "geo_replicated_primary_host_name" {
-  value       = module.redis.geo_replicated_primary_host_name
-  description = "The geo-replicated primary hostname of the linked server"
 }

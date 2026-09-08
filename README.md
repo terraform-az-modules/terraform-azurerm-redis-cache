@@ -2,7 +2,7 @@
   <img width="1024" height="250" alt="image" src="https://clouddrove.s3.ca-central-1.amazonaws.com/Logo/banner.png" />
 </p>
 <h1 align="center">
-    Terraform Azure Redis Cache
+    Terraform Azure Managed Redis
 </h1>
 
 <p align="center" style="font-size: 1.2rem;">
@@ -32,6 +32,8 @@
 <hr>
 
 
+Terraform module to create and manage **Azure Managed Redis** (`azurerm_managed_redis`), including geo-replication, private endpoint, diagnostics, and customer-managed keys.
+
 This module includes Terraform code, examples, and automation tests to help you provision infrastructure with minimal duplication and clear conventions.
 
 
@@ -44,7 +46,7 @@ This table contains both Prerequisites and Providers:
 | Description | Name | Version |
 |-------------|------|---------|
 | Prerequisite | Terraform | >= 1.10.0 |
-| Provider | azurerm | >= 4.0 |
+| Provider | azurerm | >= 4.57.0 |
 
 ---
 
@@ -56,11 +58,11 @@ This table contains both Prerequisites and Providers:
 
 > ⚠️ **Important:** Avoid using the `master` branch directly, as it may include unstable changes. Always use stable [release versions](https://github.com/terraform-az-modules/terraform-azurerm-redis-cache/releases).
 
-Explore real-world usage scenarios and implementation patterns in the [`examples/`](./examples/) directory:
+Explore real-world Azure Managed Redis usage in the [`examples/`](./examples/) directory:
 
-- Complete deployment setups
-- Modular usage patterns
-- Best practice configurations
+- [`examples/basic`](./examples/basic) — minimal Managed Redis
+- [`examples/complete`](./examples/complete) — private endpoint, diagnostics, and CMK
+- [`examples/geo-replication`](./examples/geo-replication) — primary + secondary geo-replication
 
 ---
 

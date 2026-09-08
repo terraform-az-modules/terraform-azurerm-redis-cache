@@ -49,7 +49,7 @@ variable "extra_tags" {
 
 variable "repository" {
   type        = string
-  default     = "https://github.com/terraform-az-modules/terraform-azure-redis-cache"
+  default     = "https://github.com/terraform-az-modules/terraform-azurerm-redis-cache"
   description = "Terraform current module repo"
 
   validation {
@@ -89,311 +89,295 @@ variable "enable" {
 
 variable "resource_group_name" {
   type        = string
-  description = "The name of the resource group in which to create the Redis Cache."
+  default     = null
+  description = "The name of the resource group in which to create the Managed Redis instance."
 }
 
 ##-----------------------------------------------------------------------------
-## Primary Redis Cache Configuration
+## Primary Managed Redis Configuration
 ##-----------------------------------------------------------------------------
+
+variable "sku_name" {
+  type        = string
+  default     = "Balanced_B1"
+  description = "Managed Redis SKU. Possible values: Balanced_B0, Balanced_B1, Balanced_B3, Balanced_B5, Balanced_B10, Balanced_B20, Balanced_B50, Balanced_B100, Balanced_B150, Balanced_B250, Balanced_B350, Balanced_B500, Balanced_B700, Balanced_B1000, ComputeOptimized_X3/X5/X10/X20/X50/X100/X150/X250/X350/X500/X700, FlashOptimized_A250/A500/A700/A1000/A1500/A2000/A4500, MemoryOptimized_M10/M20/M50/M100/M150/M250/M350/M500/M700/M1000/M1500/M2000. Balanced_B3 or higher is required for geo-replication."
+}
+
+variable "high_availability_enabled" {
+  type        = bool
+  default     = true
+  description = "Whether to enable high availability for the Managed Redis instance. Defaults to true. Changing this forces a new resource."
+}
 
 variable "access_keys_authentication_enabled" {
   type        = bool
   default     = true
-  description = "Enable access key authentication"
-}
-
-variable "capacity" {
-  type        = number
-  default     = 1
-  description = "Redis cache size"
-}
-
-variable "family" {
-  type        = string
-  default     = "C"
-  description = "SKU family - C for Basic/Standard, P for Premium"
-}
-
-variable "minimum_tls_version" {
-  type        = string
-  default     = "1.2"
-  description = "Minimum TLS version"
-}
-
-variable "non_ssl_port_enabled" {
-  type        = bool
-  default     = false
-  description = "Enable non-SSL port 6379"
+  description = "Whether access key authentication is enabled for the default database."
 }
 
 variable "public_network_access_enabled" {
   type        = bool
   default     = false
-  description = "Allow public network access"
+  description = "Allow public network access. Maps to public_network_access Enabled/Disabled."
 }
 
-variable "redis_version" {
+variable "client_protocol" {
   type        = string
-  default     = "6"
-  description = "Redis version"
+  default     = "Encrypted"
+  description = "Specifies whether redis clients can connect using TLS-encrypted or plaintext redis protocols. Possible values are Encrypted and Plaintext."
 }
 
-variable "replicas_per_master" {
-  type        = number
-  default     = null
-  description = "Number of replicas per master"
-}
-
-variable "replicas_per_primary" {
-  type        = number
-  default     = null
-  description = "Number of replicas per primary"
-}
-
-variable "sku_name" {
+variable "clustering_policy" {
   type        = string
-  default     = "Standard"
-  description = "Redis SKU - Basic, Standard, or Premium"
+  default     = "OSSCluster"
+  description = "Clustering policy specified at create time. Possible values are EnterpriseCluster, OSSCluster and NoCluster. Changing this forces database recreation."
 }
 
-##-----------------------------------------------------------------------------
-## Redis Configuration Settings
-##-----------------------------------------------------------------------------
-
-variable "redis_config" {
-  type = object({
-    authentication_enabled                  = bool
-    maxmemory_reserved                      = number
-    maxmemory_delta                         = number
-    data_persistence_authentication_method  = string
-    maxfragmentationmemory_reserved         = number
-    maxmemory_policy                        = string
-    active_directory_authentication_enabled = bool
-    backup_enabled                          = bool
-    rdb_backup_frequency                    = number
-    aof_backup_enabled                      = bool
-    aof_storage_connection_string_0         = string
-  })
-  default = {
-    authentication_enabled                  = true
-    maxmemory_reserved                      = 50
-    maxmemory_delta                         = 50
-    data_persistence_authentication_method  = "SAS"
-    maxfragmentationmemory_reserved         = 50
-    maxmemory_policy                        = "allkeys-lru"
-    active_directory_authentication_enabled = false
-    backup_enabled                          = false
-    rdb_backup_frequency                    = 60
-    aof_backup_enabled                      = false
-    aof_storage_connection_string_0         = null
-  }
-  description = "Redis configuration settings"
+variable "eviction_policy" {
+  type        = string
+  default     = "VolatileLRU"
+  description = "Redis eviction policy. Possible values are AllKeysLFU, AllKeysLRU, AllKeysRandom, VolatileLRU, VolatileLFU, VolatileTTL, VolatileRandom and NoEviction."
 }
 
-##-----------------------------------------------------------------------------
-## Maintenance & Scheduling
-##-----------------------------------------------------------------------------
-
-variable "patch_schedule" {
-  type = object({
-    day_of_week    = string
-    start_hour_utc = number
-  })
+variable "persistence_aof_backup_frequency" {
+  type        = string
   default     = null
-  description = "Redis maintenance schedule"
+  description = "Frequency of Append Only File (AOF) backups. Only possible value is 1s. Conflicts with persistence_rdb_backup_frequency and geo_replication_group_name."
 }
 
-##-----------------------------------------------------------------------------
-## Network Security & Access
-##-----------------------------------------------------------------------------
+variable "persistence_rdb_backup_frequency" {
+  type        = string
+  default     = null
+  description = "Frequency of Redis Database (RDB) backups. Possible values are 1h, 6h and 12h. Conflicts with persistence_aof_backup_frequency and geo_replication_group_name."
+}
 
-variable "firewall_rules" {
-  type = map(object({
-    start_ip = string
-    end_ip   = string
+variable "redis_modules" {
+  type = list(object({
+    name = string
+    args = optional(string)
   }))
+  default     = []
+  description = "Redis modules to enable. Possible name values: RedisBloom, RedisTimeSeries, RediSearch, RedisJSON. Changing modules forces database recreation. Only RediSearch and RedisJSON are allowed with geo-replication."
+}
+
+variable "geo_replication_group_name" {
+  type        = string
+  default     = null
+  description = "Name of the geo-replication group. Required when secondary_enabled is true or linked_managed_redis_ids is set. All members must share the same name. Changing this forces database recreation."
+}
+
+variable "linked_managed_redis_ids" {
+  type        = list(string)
+  default     = []
+  description = "Additional Managed Redis IDs to link into the geo-replication group (besides the module-managed secondary). Up to 4 linked IDs total (group of 5 including primary)."
+}
+
+variable "cmk_encryption_enabled" {
+  type        = bool
+  default     = false
+  description = "Whether to create CMK or not"
+}
+
+variable "geo_replication_cmk_enabled" {
+  type        = bool
+  default     = false
+  description = "Whether to create a dedicated Customer Managed Key (CMK) for the secondary (geo-replicated) Managed Redis instance."
+}
+
+variable "key_vault_rbac_auth_enabled" {
+  type        = bool
+  default     = true
+  description = "Specifies whether Role-Based Access Control (RBAC) is enabled for the Key Vault."
+}
+
+variable "key_vault_id" {
+  type        = string
+  default     = null
+  description = "Key Vault resource ID used to create the CMK and grant the encryption identity wrap/unwrap permissions."
+}
+
+variable "key_type" {
+  type        = string
+  default     = "RSA-HSM"
+  description = "Key type for the Managed Redis CMK. Possible values include RSA and RSA-HSM."
+}
+
+variable "key_size" {
+  type        = number
+  default     = 2048
+  description = "Key size for the Managed Redis CMK. Defaults to 2048."
+}
+
+variable "key_expiration_date" {
+  type        = string
+  default     = "2028-12-31T23:59:59Z"
+  description = "The expiration date for the Key Vault key in ISO 8601 format."
+}
+
+variable "key_permissions" {
+  type        = list(string)
+  default     = ["decrypt", "encrypt", "sign", "unwrapKey", "verify", "wrapKey"]
+  description = "List of key permissions for the Key Vault key."
+}
+
+variable "rotation_policy_config" {
+  type = object({
+    enabled              = bool
+    time_before_expiry   = optional(string, "P30D")
+    expire_after         = optional(string, "P90D")
+    notify_before_expiry = optional(string, "P29D")
+  })
   default = {
-    access_to_azure = {
-      start_ip = "10.0.3.0"
-      end_ip   = "10.0.3.255"
-    }
+    enabled              = false
+    time_before_expiry   = "P30D"
+    expire_after         = "P90D"
+    notify_before_expiry = "P29D"
   }
-  description = "Firewall IP address ranges"
+  description = "Rotation policy configuration for Key Vault keys."
+}
+
+variable "identity_ids" {
+  type        = list(string)
+  default     = null
+  description = "User Assigned Managed Identity IDs to attach when encryption is false."
+}
+
+variable "timeouts" {
+  type = object({
+    create = optional(string)
+    read   = optional(string)
+    update = optional(string)
+    delete = optional(string)
+  })
+  default     = null
+  description = "Timeouts for the primary Managed Redis resource (create/read/update/delete)."
 }
 
 ##-----------------------------------------------------------------------------
 ## Access Policy Configuration
 ##-----------------------------------------------------------------------------
 
-variable "access_policy_name" {
-  type        = string
-  default     = "Data Contributor"
-  description = "Name of the access policy to assign"
-}
-
-variable "object_id_alias" {
-  type        = string
-  default     = "ServicePrincipal"
-  description = "Alias for the object ID"
-}
-
-variable "permissions" {
-  type        = string
-  default     = "+@read +@connection"
-  description = "Permissions for the Redis cache access policy"
-}
-
-variable "server_role" {
-  type        = string
-  default     = "Secondary"
-  description = "Role of the linked server - Primary or Secondary"
-}
-
 variable "user_object_id" {
   type        = string
   default     = null
-  description = "Object ID of the user or service principal"
+  description = "Object ID of the Azure AD user, group, service principal, or managed identity for access policy assignment."
+}
+
+variable "access_policy_assignment_timeouts" {
+  type = object({
+    create = optional(string)
+    read   = optional(string)
+    delete = optional(string)
+  })
+  default     = null
+  description = "Timeouts for the Managed Redis access policy assignment (create/read/delete)."
 }
 
 ##-----------------------------------------------------------------------------
-## Secondary Redis Cache Configuration
+## Secondary Managed Redis Configuration
 ##-----------------------------------------------------------------------------
 
 variable "secondary_enabled" {
   type        = bool
   default     = false
-  description = "Enable secondary Redis cache"
+  description = "Enable secondary Managed Redis instance and include it in geo-replication."
+}
+
+variable "secondary_sku_name" {
+  type        = string
+  default     = "Balanced_B3"
+  description = "SKU name for secondary Managed Redis. Balanced_B3 or higher is required for geo-replication."
+}
+
+variable "secondary_high_availability_enabled" {
+  type        = bool
+  default     = true
+  description = "Whether to enable high availability for the secondary Managed Redis instance."
 }
 
 variable "secondary_access_keys_authentication_enabled" {
   type        = bool
   default     = true
-  description = "Enable access key authentication for secondary Redis cache"
-}
-
-variable "secondary_capacity" {
-  type        = number
-  default     = 1
-  description = "Capacity for secondary Redis cache"
-}
-
-variable "secondary_family" {
-  type        = string
-  default     = "P"
-  description = "SKU family for secondary Redis cache"
+  description = "Enable access key authentication for secondary Managed Redis default database."
 }
 
 variable "secondary_location" {
   type        = string
   default     = "eastus"
-  description = "Location for secondary Redis cache"
-}
-
-variable "secondary_minimum_tls_version" {
-  type        = string
-  default     = "1.2"
-  description = "Minimum TLS version for secondary Redis cache"
-}
-
-variable "secondary_non_ssl_port_enabled" {
-  type        = bool
-  default     = false
-  description = "Enable non-SSL port for secondary Redis cache"
+  description = "Location for secondary Managed Redis."
 }
 
 variable "secondary_public_network_access_enabled" {
   type        = bool
   default     = false
-  description = "Enable public network access for secondary Redis cache"
+  description = "Enable public network access for secondary Managed Redis."
 }
 
-variable "secondary_redis_version" {
+variable "secondary_client_protocol" {
   type        = string
-  default     = "6"
-  description = "Redis version for secondary cache"
+  default     = "Encrypted"
+  description = "Client protocol for secondary Managed Redis. Possible values are Encrypted and Plaintext."
 }
 
-variable "secondary_replicas_per_master" {
-  type        = number
-  default     = 1
-  description = "Number of replicas per master for secondary Redis cache"
+variable "secondary_clustering_policy" {
+  type        = string
+  default     = "OSSCluster"
+  description = "Clustering policy for secondary Managed Redis. Possible values are EnterpriseCluster, OSSCluster and NoCluster."
 }
 
-variable "secondary_replicas_per_primary" {
-  type        = number
-  default     = 1
-  description = "Number of replicas per primary for secondary Redis cache"
+variable "secondary_eviction_policy" {
+  type        = string
+  default     = "VolatileLRU"
+  description = "Eviction policy for secondary Managed Redis."
 }
 
 variable "secondary_resource_group_name" {
   type        = string
   default     = null
-  description = "Resource group name for secondary Redis cache"
+  description = "Resource group name for secondary Managed Redis."
 }
 
 variable "secondary_resource_position_prefix" {
   type        = bool
   default     = true
-  description = "Position prefix for secondary Redis cache name"
+  description = "Position prefix for secondary Managed Redis name."
 }
 
-variable "secondary_sku_name" {
-  type        = string
-  default     = "Premium"
-  description = "SKU name for secondary Redis cache"
+variable "secondary_redis_modules" {
+  type = list(object({
+    name = string
+    args = optional(string)
+  }))
+  default     = []
+  description = "Redis modules for secondary Managed Redis. Only RediSearch and RedisJSON are allowed with geo-replication."
 }
 
-##-----------------------------------------------------------------------------
-## Secondary Redis Configuration Settings
-##-----------------------------------------------------------------------------
+variable "secondary_identity_ids" {
+  type        = list(string)
+  default     = null
+  description = "User Assigned Managed Identity IDs for secondary Managed Redis when encryption is false."
+}
 
-variable "secondary_patch_schedule" {
+variable "secondary_timeouts" {
   type = object({
-    day_of_week    = string
-    start_hour_utc = number
+    create = optional(string)
+    read   = optional(string)
+    update = optional(string)
+    delete = optional(string)
   })
   default     = null
-  description = "Patch schedule for secondary Redis cache"
+  description = "Timeouts for the secondary Managed Redis resource."
 }
 
-variable "secondary_redis_config" {
+variable "geo_replication_timeouts" {
   type = object({
-    authentication_enabled                  = bool
-    maxmemory_reserved                      = number
-    maxmemory_delta                         = number
-    data_persistence_authentication_method  = string
-    maxfragmentationmemory_reserved         = number
-    maxmemory_policy                        = string
-    active_directory_authentication_enabled = bool
-    backup_enabled                          = bool
-    rdb_backup_frequency                    = number
-    aof_backup_enabled                      = bool
-    aof_storage_connection_string_0         = string
+    create = optional(string)
+    read   = optional(string)
+    update = optional(string)
+    delete = optional(string)
   })
-  default = {
-    authentication_enabled                  = true
-    maxmemory_reserved                      = 50
-    maxmemory_delta                         = 50
-    data_persistence_authentication_method  = "SAS"
-    maxfragmentationmemory_reserved         = 50
-    maxmemory_policy                        = "allkeys-lru"
-    active_directory_authentication_enabled = false
-    backup_enabled                          = false
-    rdb_backup_frequency                    = 60
-    aof_backup_enabled                      = false
-    aof_storage_connection_string_0         = null
-  }
-  description = "Redis configuration settings for secondary cache"
-}
-
-##-----------------------------------------------------------------------------
-## Geo-Replication Configuration
-##-----------------------------------------------------------------------------
-
-variable "enable_geo_replication" {
-  type        = bool
-  default     = false
-  description = "Enable geo-replication between primary and secondary Redis caches"
+  default     = null
+  description = "Timeouts for the Managed Redis geo-replication resource."
 }
 
 ##-----------------------------------------------------------------------------
@@ -403,7 +387,7 @@ variable "enable_geo_replication" {
 variable "enable_private_endpoint" {
   type        = bool
   default     = true
-  description = "Enable private endpoint for Redis Cache."
+  description = "Enable private endpoint for Managed Redis."
 }
 
 variable "private_dns_zone_ids" {
@@ -425,7 +409,7 @@ variable "subnet_id" {
 variable "enable_diagnostic" {
   type        = bool
   default     = true
-  description = "Enable diagnostic settings for Redis Cache"
+  description = "Enable diagnostic settings for Managed Redis"
 }
 
 variable "log_analytics_workspace_id" {
@@ -443,7 +427,7 @@ variable "storage_account_id" {
 variable "metric_enabled" {
   type        = bool
   default     = true
-  description = "Boolean flag to specify whether Metrics should be enabled for the Container Registry. Defaults to true."
+  description = "Boolean flag to specify whether Metrics should be enabled. Defaults to true."
 }
 
 variable "logs" {

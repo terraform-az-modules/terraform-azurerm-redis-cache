@@ -4,6 +4,10 @@ provider "azurerm" {
 
 data "azurerm_client_config" "current_client_config" {}
 
+##-----------------------------------------------------------------------------
+## Resource Group module call
+## Resource group in which all resources will be deployed.
+##-----------------------------------------------------------------------------
 module "resource_group" {
   source      = "terraform-az-modules/resource-group/azurerm"
   version     = "1.0.3"
@@ -13,9 +17,9 @@ module "resource_group" {
   label_order = ["name", "environment", "location"]
 }
 
-# ------------------------------------------------------------------------------
-# Virtual Network
-# ------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
+## Virtual Network module call
+##-----------------------------------------------------------------------------
 module "vnet" {
   source              = "terraform-az-modules/vnet/azurerm"
   version             = "1.0.3"
@@ -27,9 +31,9 @@ module "vnet" {
   address_spaces      = ["10.0.0.0/16"]
 }
 
-# ------------------------------------------------------------------------------
-# Subnet
-# ------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
+## Subnet module call
+##-----------------------------------------------------------------------------
 module "subnet" {
   source               = "terraform-az-modules/subnet/azurerm"
   version              = "1.0.3"
@@ -46,9 +50,9 @@ module "subnet" {
   ]
 }
 
-# ------------------------------------------------------------------------------
-# Log Analytics
-# ------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
+## Log Analytics module call
+##-----------------------------------------------------------------------------
 module "log-analytics" {
   source                      = "terraform-az-modules/log-analytics/azurerm"
   version                     = "2.1.0"
@@ -60,9 +64,40 @@ module "log-analytics" {
   location                    = module.resource_group.resource_group_location
 }
 
-# ------------------------------------------------------------------------------
-# Private DNS Zone
-# ------------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
+## Key Vault module call
+##-----------------------------------------------------------------------------
+module "vault" {
+  source                        = "terraform-az-modules/key-vault/azurerm"
+  version                       = "3.2.0"
+  name                          = "core"
+  environment                   = "dev"
+  custom_name                   = "fikje40f93"
+  label_order                   = ["name", "environment", "location"]
+  resource_group_name           = module.resource_group.resource_group_name
+  location                      = module.resource_group.resource_group_location
+  subnet_id                     = module.subnet.subnet_ids.subnet1
+  public_network_access_enabled = true
+  sku_name                      = "premium"
+  private_dns_zone_ids          = module.private_dns_zone.private_dns_zone_ids.key_vault
+  network_acls = {
+    bypass         = "AzureServices"
+    default_action = "Deny"
+    ip_rules       = ["0.0.0.0/0"]
+  }
+  reader_objects_ids = {
+    "Key Vault Administrator" = {
+      role_definition_name = "Key Vault Administrator"
+      principal_id         = data.azurerm_client_config.current_client_config.object_id
+    }
+  }
+  diagnostic_setting_enable  = true
+  log_analytics_workspace_id = module.log-analytics.workspace_id
+}
+
+##-----------------------------------------------------------------------------
+## Private DNS Zone module call
+##-----------------------------------------------------------------------------
 module "private_dns_zone" {
   source              = "terraform-az-modules/private-dns/azurerm"
   version             = "1.0.8"
@@ -75,15 +110,19 @@ module "private_dns_zone" {
     {
       resource_type = "azure_redis"
       vnet_ids      = [module.vnet.vnet_id]
+    },
+    {
+      resource_type = "key_vault"
+      vnet_ids      = [module.vnet.vnet_id]
     }
   ]
 }
 
 ##-----------------------------------------------------------------------------
-## Redis module call.
+## Redis module call
 ##-----------------------------------------------------------------------------
 module "redis" {
-  depends_on                 = [module.private_dns_zone]
+  depends_on                 = [module.private_dns_zone, module.vault]
   source                     = "../../"
   name                       = "core"
   environment                = "dev"
@@ -93,5 +132,6 @@ module "redis" {
   user_object_id             = data.azurerm_client_config.current_client_config.object_id
   log_analytics_workspace_id = module.log-analytics.workspace_id
   subnet_id                  = module.subnet.subnet_ids.subnet1
-  enable_private_endpoint    = true
+  cmk_encryption_enabled     = true
+  key_vault_id               = module.vault.id
 }
