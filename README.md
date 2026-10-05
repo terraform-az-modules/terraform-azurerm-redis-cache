@@ -32,8 +32,6 @@
 <hr>
 
 
-Terraform module to create and manage **Azure Managed Redis** (`azurerm_managed_redis`), including geo-replication, private endpoint, diagnostics, and customer-managed keys.
-
 This module includes Terraform code, examples, and automation tests to help you provision infrastructure with minimal duplication and clear conventions.
 
 
@@ -58,11 +56,11 @@ This table contains both Prerequisites and Providers:
 
 > ⚠️ **Important:** Avoid using the `master` branch directly, as it may include unstable changes. Always use stable [release versions](https://github.com/terraform-az-modules/terraform-azurerm-redis-cache/releases).
 
-Explore real-world Azure Managed Redis usage in the [`examples/`](./examples/) directory:
+Explore real-world usage scenarios and implementation patterns in the [`examples/`](./examples/) directory:
 
-- [`examples/basic`](./examples/basic) — minimal Managed Redis
-- [`examples/complete`](./examples/complete) — private endpoint, diagnostics, and CMK
-- [`examples/geo-replication`](./examples/geo-replication) — primary + secondary geo-replication
+- Complete deployment setups
+- Modular usage patterns
+- Best practice configurations
 
 ---
 
@@ -126,3 +124,16 @@ We have [**50+ Azure Terraform modules**](https://github.com/orgs/terraform-az-m
 - Avoid consuming unversioned or in-progress code.
 
 ---
+
+
+
+
+
+
+
+
+
+
+
+
+
