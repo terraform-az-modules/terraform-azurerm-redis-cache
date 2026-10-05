@@ -19,30 +19,140 @@ module "resource_group" {
 
 ##-----------------------------------------------------------------------------
 ## Secondary Resource Group module call
-## Resource group in Geo Redis will be Deployed
+## Resource group in which geo Redis will be deployed.
 ##-----------------------------------------------------------------------------
 module "secondary_resource_group" {
   source      = "terraform-az-modules/resource-group/azurerm"
   version     = "1.0.3"
   name        = "geo"
   environment = "dev"
-  location    = "eastus"
+  location    = "centralus"
   label_order = ["name", "environment", "location"]
 }
 
 ##-----------------------------------------------------------------------------
-## Redis module call.
+## Virtual Network module call
+##-----------------------------------------------------------------------------
+module "vnet" {
+  source              = "terraform-az-modules/vnet/azurerm"
+  version             = "1.0.3"
+  name                = "core"
+  environment         = "dev"
+  label_order         = ["name", "environment", "location"]
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.resource_group_location
+  address_spaces      = ["10.0.0.0/16"]
+}
+
+##-----------------------------------------------------------------------------
+## Subnet module call
+##-----------------------------------------------------------------------------
+module "subnet" {
+  source               = "terraform-az-modules/subnet/azurerm"
+  version              = "1.0.3"
+  environment          = "dev"
+  label_order          = ["name", "environment", "location"]
+  resource_group_name  = module.resource_group.resource_group_name
+  location             = module.resource_group.resource_group_location
+  virtual_network_name = module.vnet.vnet_name
+  subnets = [
+    {
+      name            = "subnet1"
+      subnet_prefixes = ["10.0.1.0/24"]
+    }
+  ]
+}
+
+##-----------------------------------------------------------------------------
+## Log Analytics module call
+##-----------------------------------------------------------------------------
+module "log-analytics" {
+  source                      = "terraform-az-modules/log-analytics/azurerm"
+  version                     = "2.1.0"
+  name                        = "core"
+  environment                 = "dev"
+  label_order                 = ["name", "environment", "location"]
+  log_analytics_workspace_sku = "PerGB2018"
+  resource_group_name         = module.resource_group.resource_group_name
+  location                    = module.resource_group.resource_group_location
+}
+
+##-----------------------------------------------------------------------------
+## Key Vault module call
+##-----------------------------------------------------------------------------
+module "vault" {
+  source                        = "terraform-az-modules/key-vault/azurerm"
+  version                       = "3.2.0"
+  name                          = "core"
+  environment                   = "dev"
+  custom_name                   = "fikje40f93"
+  label_order                   = ["name", "environment", "location"]
+  resource_group_name           = module.resource_group.resource_group_name
+  location                      = module.resource_group.resource_group_location
+  subnet_id                     = module.subnet.subnet_ids.subnet1
+  public_network_access_enabled = true
+  sku_name                      = "premium"
+  private_dns_zone_ids          = module.private_dns_zone.private_dns_zone_ids.key_vault
+  network_acls = {
+    bypass         = "AzureServices"
+    default_action = "Deny"
+    ip_rules       = ["0.0.0.0/0"]
+  }
+  reader_objects_ids = {
+    "Key Vault Administrator" = {
+      role_definition_name = "Key Vault Administrator"
+      principal_id         = data.azurerm_client_config.current_client_config.object_id
+    }
+  }
+  diagnostic_setting_enable  = true
+  log_analytics_workspace_id = module.log-analytics.workspace_id
+}
+
+##-----------------------------------------------------------------------------
+## Private DNS Zone module call
+##-----------------------------------------------------------------------------
+module "private_dns_zone" {
+  source              = "terraform-az-modules/private-dns/azurerm"
+  version             = "1.0.8"
+  name                = "core"
+  environment         = "dev"
+  label_order         = ["name", "environment", "location"]
+  resource_group_name = module.resource_group.resource_group_name
+  location            = module.resource_group.resource_group_location
+  private_dns_config = [
+    {
+      resource_type = "azure_redis"
+      vnet_ids      = [module.vnet.vnet_id]
+    },
+    {
+      resource_type = "key_vault"
+      vnet_ids      = [module.vnet.vnet_id]
+    }
+  ]
+}
+
+##-----------------------------------------------------------------------------
+## Redis module call
 ##-----------------------------------------------------------------------------
 module "redis" {
+  depends_on                    = [module.private_dns_zone, module.vault]
   source                        = "../../"
   name                          = "core"
   environment                   = "dev"
   location                      = module.resource_group.resource_group_location
   resource_group_name           = module.resource_group.resource_group_name
+  private_dns_zone_ids          = module.private_dns_zone.private_dns_zone_ids.azure_redis
   user_object_id                = data.azurerm_client_config.current_client_config.object_id
+  sku_name                      = "Balanced_B3"
   secondary_enabled             = true
+  secondary_sku_name            = "Balanced_B3"
   secondary_location            = module.secondary_resource_group.resource_group_location
   secondary_resource_group_name = module.secondary_resource_group.resource_group_name
-  enable_private_endpoint       = false
-  enable_diagnostic             = false
+  geo_replication_group_name    = "geo-group"
+  enable_diagnostic             = true
+  cmk_encryption_enabled        = true
+  subnet_id                     = module.subnet.subnet_ids.subnet1
+  geo_replication_cmk_enabled   = true
+  log_analytics_workspace_id    = module.log-analytics.workspace_id
+  key_vault_id                  = module.vault.id
 }

@@ -15,150 +15,203 @@ module "labels" {
 }
 
 ##-----------------------------------------------------------------------------
-## Azure Redis Cache - Main Redis instance configuration
+## Key Vault Key - Deploy encryption key for Managed Redis
 ##-----------------------------------------------------------------------------
-resource "azurerm_redis_cache" "main" {
-  count                              = var.enable ? 1 : 0
-  name                               = var.resource_position_prefix ? format("redis-%s", local.name) : format("%s-redis", local.name)
-  location                           = var.location
-  resource_group_name                = var.resource_group_name
-  capacity                           = var.capacity
-  family                             = var.family
-  sku_name                           = var.sku_name
-  non_ssl_port_enabled               = var.non_ssl_port_enabled
-  minimum_tls_version                = var.minimum_tls_version
-  access_keys_authentication_enabled = var.access_keys_authentication_enabled
-  public_network_access_enabled      = var.public_network_access_enabled
-  redis_version                      = var.redis_version
-  replicas_per_master                = var.replicas_per_master
-  replicas_per_primary               = var.replicas_per_primary
-  tags                               = module.labels.tags
-  dynamic "patch_schedule" {
-    for_each = var.patch_schedule != null ? [var.patch_schedule] : []
+resource "azurerm_key_vault_key" "main" {
+  depends_on      = [azurerm_role_assignment.identity_assigned]
+  count           = var.enable && var.cmk_encryption_enabled ? 1 : 0
+  name            = var.resource_position_prefix ? format("cmk-key-amr-%s", local.name) : format("%s-cmk-key-amr", local.name)
+  key_vault_id    = var.key_vault_id
+  key_type        = var.key_type
+  key_size        = var.key_size
+  expiration_date = var.key_expiration_date
+  key_opts        = var.key_permissions
+  dynamic "rotation_policy" {
+    for_each = var.rotation_policy_config.enabled ? [1] : []
     content {
-      day_of_week    = var.patch_schedule.day_of_week
-      start_hour_utc = var.patch_schedule.start_hour_utc
+      automatic {
+        time_before_expiry = var.rotation_policy_config.time_before_expiry
+      }
+      expire_after         = var.rotation_policy_config.expire_after
+      notify_before_expiry = var.rotation_policy_config.notify_before_expiry
     }
   }
-  redis_configuration {
-    authentication_enabled                  = var.redis_config.authentication_enabled
-    maxmemory_reserved                      = var.redis_config.maxmemory_reserved
-    maxmemory_delta                         = var.redis_config.maxmemory_delta
-    data_persistence_authentication_method  = var.redis_config.data_persistence_authentication_method
-    maxfragmentationmemory_reserved         = var.redis_config.maxfragmentationmemory_reserved
-    maxmemory_policy                        = var.redis_config.maxmemory_policy
-    active_directory_authentication_enabled = var.redis_config.active_directory_authentication_enabled
-    rdb_backup_enabled                      = var.redis_config.backup_enabled && var.sku_name == "Premium"
-    rdb_backup_frequency                    = var.redis_config.backup_enabled && var.sku_name == "Premium" ? var.redis_config.rdb_backup_frequency : null
-    aof_storage_connection_string_0         = var.redis_config.aof_backup_enabled ? var.redis_config.aof_storage_connection_string_0 : null
-    aof_backup_enabled                      = var.redis_config.aof_backup_enabled
+}
+
+##-----------------------------------------------------------------------------
+## Key Vault Key - Dedicated encryption key for secondary Managed Redis
+##-----------------------------------------------------------------------------
+resource "azurerm_key_vault_key" "secondary_cmk_key" {
+  depends_on      = [azurerm_role_assignment.identity_assigned]
+  count           = var.enable && var.secondary_enabled && var.geo_replication_cmk_enabled ? 1 : 0
+  name            = var.secondary_resource_position_prefix ? format("cmk-key-amr-geo-%s", local.name) : format("%s-cmk-key-amr-geo", local.name)
+  key_vault_id    = var.key_vault_id
+  key_type        = var.key_type
+  key_size        = var.key_size
+  expiration_date = var.key_expiration_date
+  key_opts        = var.key_permissions
+  dynamic "rotation_policy" {
+    for_each = var.rotation_policy_config.enabled ? [1] : []
+    content {
+      automatic {
+        time_before_expiry = var.rotation_policy_config.time_before_expiry
+      }
+      expire_after         = var.rotation_policy_config.expire_after
+      notify_before_expiry = var.rotation_policy_config.notify_before_expiry
+    }
   }
 }
 
 ##-----------------------------------------------------------------------------
-## Redis Firewall Rule - Define IP rules to restrict inbound access
+## Azure Managed Redis - Main Redis instance configuration
 ##-----------------------------------------------------------------------------
-resource "azurerm_redis_firewall_rule" "main" {
-  for_each            = var.enable && length(var.firewall_rules) > 0 ? { for idx, rule in var.firewall_rules : idx => rule } : {}
-  name                = var.resource_position_prefix ? format("redis_fw_%s", replace(local.name, "-", "_")) : format("%s_redis_fw", replace(local.name, "-", "_"))
-  redis_cache_name    = azurerm_redis_cache.main[0].name
-  resource_group_name = var.resource_group_name
-  start_ip            = each.value.start_ip
-  end_ip              = each.value.end_ip
+resource "azurerm_managed_redis" "main" {
+  count                     = var.enable ? 1 : 0
+  depends_on                = [azurerm_key_vault_key.main]
+  name                      = var.resource_position_prefix ? format("amr-%s", local.name) : format("%s-amr", local.name)
+  location                  = var.location
+  resource_group_name       = var.resource_group_name
+  sku_name                  = var.sku_name
+  high_availability_enabled = var.high_availability_enabled
+  public_network_access     = var.public_network_access_enabled ? "Enabled" : "Disabled"
+  tags                      = module.labels.tags
+  default_database {
+    access_keys_authentication_enabled            = var.access_keys_authentication_enabled
+    client_protocol                               = var.client_protocol
+    clustering_policy                             = var.clustering_policy
+    eviction_policy                               = var.eviction_policy
+    geo_replication_group_name                    = var.geo_replication_group_name
+    persistence_append_only_file_backup_frequency = var.geo_replication_group_name != null ? null : var.persistence_aof_backup_frequency
+    persistence_redis_database_backup_frequency   = var.geo_replication_group_name != null ? null : var.persistence_rdb_backup_frequency
+    dynamic "module" {
+      for_each = var.redis_modules
+      content {
+        name = module.value.name
+        args = module.value.args
+      }
+    }
+  }
+  identity {
+    type         = var.identity_ids != null || var.cmk_encryption_enabled ? "SystemAssigned, UserAssigned" : "SystemAssigned"
+    identity_ids = var.cmk_encryption_enabled ? [azurerm_user_assigned_identity.identity[0].id] : var.identity_ids
+  }
+  dynamic "customer_managed_key" {
+    for_each = var.cmk_encryption_enabled ? [1] : []
+    content {
+      key_vault_key_id          = azurerm_key_vault_key.main[0].id
+      user_assigned_identity_id = azurerm_user_assigned_identity.identity[0].id
+    }
+  }
+  dynamic "timeouts" {
+    for_each = var.timeouts != null ? [var.timeouts] : []
+    content {
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
+  }
 }
 
 ##-----------------------------------------------------------------------------
-## Redis Linked Server - Setup active geo-replication arcoss Redis instances
+## Azure Managed Redis - Secondary (geo-replication peer)
 ##-----------------------------------------------------------------------------
-resource "azurerm_redis_linked_server" "main" {
-  count                       = var.enable && var.secondary_enabled ? 1 : 0
-  target_redis_cache_name     = azurerm_redis_cache.main[0].name
-  resource_group_name         = var.resource_group_name
-  linked_redis_cache_id       = azurerm_redis_cache.secondary[0].id
-  linked_redis_cache_location = var.secondary_location
-  server_role                 = var.server_role
+resource "azurerm_managed_redis" "secondary" {
+  count                     = var.enable && var.secondary_enabled ? 1 : 0
+  depends_on                = [azurerm_key_vault_key.secondary_cmk_key]
+  name                      = var.secondary_resource_position_prefix ? format("geo-amr-%s", local.name) : format("%s-geo-amr", local.name)
+  location                  = var.secondary_location
+  resource_group_name       = var.secondary_resource_group_name
+  sku_name                  = var.secondary_sku_name
+  high_availability_enabled = var.secondary_high_availability_enabled
+  public_network_access     = var.secondary_public_network_access_enabled ? "Enabled" : "Disabled"
+  tags                      = module.labels.tags
+  default_database {
+    access_keys_authentication_enabled = var.secondary_access_keys_authentication_enabled
+    client_protocol                    = var.secondary_client_protocol
+    clustering_policy                  = var.secondary_clustering_policy
+    eviction_policy                    = var.secondary_eviction_policy
+    geo_replication_group_name         = var.geo_replication_group_name
+    dynamic "module" {
+      for_each = var.secondary_redis_modules
+      content {
+        name = module.value.name
+        args = module.value.args
+      }
+    }
+  }
+  identity {
+    type         = var.secondary_identity_ids != null || (var.cmk_encryption_enabled && var.geo_replication_cmk_enabled) ? "SystemAssigned, UserAssigned" : "SystemAssigned"
+    identity_ids = (var.cmk_encryption_enabled && var.geo_replication_cmk_enabled) ? [azurerm_user_assigned_identity.secondary_identity[0].id] : var.secondary_identity_ids
+  }
+  dynamic "customer_managed_key" {
+    for_each = (var.cmk_encryption_enabled && var.geo_replication_cmk_enabled) ? [1] : []
+    content {
+      key_vault_key_id          = azurerm_key_vault_key.secondary_cmk_key[0].id
+      user_assigned_identity_id = azurerm_user_assigned_identity.secondary_identity[0].id
+    }
+  }
+  dynamic "timeouts" {
+    for_each = var.secondary_timeouts != null ? [var.secondary_timeouts] : []
+    content {
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
+  }
 }
 
 ##-----------------------------------------------------------------------------
-## Redis Cache resource that manages the Azure Redis Cache Policy
+## Managed Redis Geo-Replication - Link primary and secondary / additional peers
 ##-----------------------------------------------------------------------------
-resource "azurerm_redis_cache_access_policy" "main" {
-  count          = var.enable ? 1 : 0
-  name           = var.resource_position_prefix ? format("redis-policy-%s", local.name) : format("%s-redis-policy", local.name)
-  redis_cache_id = azurerm_redis_cache.main[count.index].id
-  permissions    = var.permissions
+resource "azurerm_managed_redis_geo_replication" "main" {
+  count            = var.enable && (var.secondary_enabled || length(var.linked_managed_redis_ids) > 0) ? 1 : 0
+  managed_redis_id = azurerm_managed_redis.main[0].id
+  linked_managed_redis_ids = concat(
+    var.secondary_enabled ? [azurerm_managed_redis.secondary[0].id] : [],
+    var.linked_managed_redis_ids
+  )
+  dynamic "timeouts" {
+    for_each = var.geo_replication_timeouts != null ? [var.geo_replication_timeouts] : []
+    content {
+      create = timeouts.value.create
+      read   = timeouts.value.read
+      update = timeouts.value.update
+      delete = timeouts.value.delete
+    }
+  }
 }
 
-#-----------------------------------------------------------------------------
-## Private Endpoint - Deploy private network access to Redis Cache
-##---------------------------------------------------------------------------
+##-----------------------------------------------------------------------------
+## Private Endpoint - Deploy private network access to Managed Redis
+##-----------------------------------------------------------------------------
 resource "azurerm_private_endpoint" "pep" {
   count               = var.enable && var.enable_private_endpoint ? 1 : 0
-  name                = var.resource_position_prefix ? format("pe-%s", azurerm_redis_cache.main[0].name) : format("%s-pe", azurerm_redis_cache.main[0].name)
+  name                = var.resource_position_prefix ? format("pe-%s", azurerm_managed_redis.main[0].name) : format("%s-pe", azurerm_managed_redis.main[0].name)
   location            = var.location
   resource_group_name = var.resource_group_name
   subnet_id           = var.subnet_id
   tags                = module.labels.tags
   private_dns_zone_group {
-    name                 = var.resource_position_prefix ? format("dns-zone-group-%s", azurerm_redis_cache.main[0].name) : format("%s-dns-zone-group", azurerm_redis_cache.main[0].name)
+    name                 = var.resource_position_prefix ? format("dns-zone-group-%s", azurerm_managed_redis.main[0].name) : format("%s-dns-zone-group", azurerm_managed_redis.main[0].name)
     private_dns_zone_ids = [var.private_dns_zone_ids]
   }
   private_service_connection {
-    name                           = var.resource_position_prefix ? format("psc-%s", azurerm_redis_cache.main[0].name) : format("%s-psc", azurerm_redis_cache.main[0].name)
+    name                           = var.resource_position_prefix ? format("psc-%s", azurerm_managed_redis.main[0].name) : format("%s-psc", azurerm_managed_redis.main[0].name)
     is_manual_connection           = false
-    private_connection_resource_id = azurerm_redis_cache.main[0].id
-    subresource_names              = ["rediscache"]
+    private_connection_resource_id = azurerm_managed_redis.main[0].id
+    subresource_names              = ["redisEnterprise"]
   }
 }
 
 ##-----------------------------------------------------------------------------
-## Azure Redis Cache - Secondary
+## Diagnostic Setting - Deploy monitoring and logging for Managed Redis
 ##-----------------------------------------------------------------------------
-resource "azurerm_redis_cache" "secondary" {
-  count                              = var.enable && var.secondary_enabled ? 1 : 0
-  name                               = var.secondary_resource_position_prefix ? format("geo-redis-%s", local.name) : format("%s-geo-redis", local.name)
-  location                           = var.secondary_location
-  resource_group_name                = var.secondary_resource_group_name
-  capacity                           = var.secondary_capacity
-  family                             = var.secondary_family
-  sku_name                           = var.secondary_sku_name
-  non_ssl_port_enabled               = var.secondary_non_ssl_port_enabled
-  minimum_tls_version                = var.secondary_minimum_tls_version
-  access_keys_authentication_enabled = var.secondary_access_keys_authentication_enabled
-  public_network_access_enabled      = var.secondary_public_network_access_enabled
-  redis_version                      = var.secondary_redis_version
-  replicas_per_master                = var.secondary_replicas_per_master
-  replicas_per_primary               = var.secondary_replicas_per_primary
-  tags                               = module.labels.tags
-  dynamic "patch_schedule" {
-    for_each = var.secondary_patch_schedule != null ? [var.secondary_patch_schedule] : []
-    content {
-      day_of_week    = var.secondary_patch_schedule.day_of_week
-      start_hour_utc = var.secondary_patch_schedule.start_hour_utc
-    }
-  }
-  redis_configuration {
-    authentication_enabled                  = var.secondary_redis_config.authentication_enabled
-    maxmemory_reserved                      = var.secondary_redis_config.maxmemory_reserved
-    maxmemory_delta                         = var.secondary_redis_config.maxmemory_delta
-    data_persistence_authentication_method  = var.secondary_redis_config.data_persistence_authentication_method
-    maxfragmentationmemory_reserved         = var.secondary_redis_config.maxfragmentationmemory_reserved
-    maxmemory_policy                        = var.secondary_redis_config.maxmemory_policy
-    active_directory_authentication_enabled = var.secondary_redis_config.active_directory_authentication_enabled
-    rdb_backup_enabled                      = var.secondary_redis_config.backup_enabled && var.secondary_sku_name == "Premium" && !var.enable_geo_replication
-    rdb_backup_frequency                    = var.secondary_redis_config.backup_enabled && var.secondary_sku_name == "Premium" && !var.enable_geo_replication ? var.secondary_redis_config.rdb_backup_frequency : null
-    aof_storage_connection_string_0         = var.secondary_redis_config.aof_backup_enabled && !var.enable_geo_replication ? var.secondary_redis_config.aof_storage_connection_string_0 : null
-    aof_backup_enabled                      = var.secondary_redis_config.aof_backup_enabled && !var.enable_geo_replication
-  }
-}
-
-##-----------------------------------------------------------------------------
-## Diagnostic Setting - Deploy monitoring and logging for Redis Cache
-##-----------------------------------------------------------------------------
-resource "azurerm_monitor_diagnostic_setting" "arc-diag" {
+resource "azurerm_monitor_diagnostic_setting" "diag" {
   count                      = var.enable && var.enable_diagnostic ? 1 : 0
-  name                       = var.resource_position_prefix ? format("diag-log-%s", azurerm_redis_cache.main[0].name) : format("%s-diag-log", azurerm_redis_cache.main[0].name)
-  target_resource_id         = azurerm_redis_cache.main[0].id
+  name                       = var.resource_position_prefix ? format("diag-log-%s", azurerm_managed_redis.main[0].name) : format("%s-diag-log", azurerm_managed_redis.main[0].name)
+  target_resource_id         = azurerm_managed_redis.main[0].id
   storage_account_id         = var.storage_account_id
   log_analytics_workspace_id = var.log_analytics_workspace_id
   dynamic "enabled_log" {

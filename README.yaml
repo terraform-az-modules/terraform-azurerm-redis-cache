@@ -6,7 +6,7 @@ intro: |-
 badges_text: "Latest Release | tfsec | License | Changelog"
 
 about: |-
-  Terraform module to create and manage Redis Cache on Azure.
+  Terraform module to create and manage Azure Managed Redis (`azurerm_managed_redis`), including geo-replication, private endpoint, diagnostics, and customer-managed keys.
 
 license: "APACHE"
 
@@ -29,16 +29,21 @@ prerequisites:
 providers:
   - name: azurerm
     url: https://registry.terraform.io/providers/hashicorp/azurerm/latest
-    version: ">= 4.0"
+    version: ">= 4.57.0"
 
 description: |-
-  Terraform module to create and manage Redis Cache on Azure.
+  Terraform module to create and manage Azure Managed Redis (`azurerm_managed_redis`).
 
 usage: |-
   ### Example
 
   ```hcl
-  module "redis-cache" {
-    source = "../../"
+  module "redis" {
+    source              = "terraform-az-modules/redis-cache/azurerm"
+    name                = "core"
+    environment         = "dev"
+    location            = "centralus"
+    resource_group_name = module.resource_group.resource_group_name
+    sku_name            = "Balanced_B1"
   }
   ```

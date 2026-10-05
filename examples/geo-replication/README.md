@@ -10,8 +10,8 @@ This directory contains an example usage of the **terraform-azure-redis-cache**.
 
 | Name      | Version   |
 |-----------|-----------|
-| Terraform | >= 1.6.6  |
-| Azurerm   | >= 3.116.0|
+| Terraform | >= 1.10.0 |
+| Azurerm   | >= 4.57.0 |
 
 ---
 
@@ -23,11 +23,16 @@ None specified in this example.
 
 ## 📦 Modules
 
-| Name            | Source                              | Version |
-|-----------------|-------------------------------------|---------|
-| resource_group  | terraform-az-modules/resource-group/azure    | 1.0.0   |
-| secondary_resource_group  | terraform-az-modules/resource-group/azure    | 1.0.0   |
-| redis            | ../../                              | n/a     |
+| Name                      | Source                                       | Version |
+|---------------------------|----------------------------------------------|---------|
+| resource_group            | terraform-az-modules/resource-group/azurerm  | 1.0.3   |
+| secondary_resource_group  | terraform-az-modules/resource-group/azurerm  | 1.0.3   |
+| vnet                      | terraform-az-modules/vnet/azurerm            | 1.0.3   |
+| subnet                    | terraform-az-modules/subnet/azurerm          | 1.0.3   |
+| log-analytics             | terraform-az-modules/log-analytics/azurerm   | 2.1.0   |
+| vault                     | terraform-az-modules/key-vault/azurerm       | 3.2.0   |
+| private_dns_zone          | terraform-az-modules/private-dns/azurerm     | 1.0.8   |
+| redis                     | ../../                                       | n/a     |
 
 
 ---
@@ -48,21 +53,31 @@ No input variables are defined in this example.
 
 | Name                               | Description                                                 |
 | ---------------------------------- | ----------------------------------------------------------- |
-| `id`                               | The ID of the Redis Cache instance                          |
-| `hostname`                         | The hostname of the Redis Cache instance                    |
-| `ssl_port`                         | The SSL port of the Redis Cache instance                    |
-| `port`                             | The non-SSL port of the Redis Cache instance                |
-| `primary_access_key`               | The primary access key for the Redis Cache instance         |
-| `secondary_access_key`             | The secondary access key for the Redis Cache instance       |
-| `primary_connection_string`        | The primary connection string of the Redis Cache instance   |
-| `secondary_connection_string`      | The secondary connection string of the Redis Cache instance |
-| `redis_configuration`              | Redis configuration block applied to the cache instance     |
-| `maxclients`                       | Maximum number of connected clients allowed                 |
-| `access_policy_id`                 | The ID of the Redis Cache Access Policy                     |
-| `firewall_rule_ids`                | Map of Redis Firewall Rule IDs indexed by rule key          |
-| `linked_server_id`                 | The ID of the Redis Linked Server                           |
-| `linked_server_name`               | The name of the Redis Linked Server                         |
-| `geo_replicated_primary_host_name` | The geo-replicated primary hostname of the linked server    |
+| `id`                               | The ID of the Managed Redis instance                        |
+| `name`                             | The name of the Managed Redis instance                      |
+| `hostname`                         | The hostname of the Managed Redis instance                  |
+| `sku_name`                         | The SKU name of the Managed Redis instance                  |
+| `location`                         | The Azure Region of the Managed Redis instance              |
+| `resource_group_name`              | The Resource Group of the Managed Redis instance            |
+| `high_availability_enabled`        | Whether high availability is enabled                        |
+| `public_network_access`            | Public network access setting (Enabled or Disabled)         |
+| `database_id`                      | The ID of the Managed Redis default database                |
+| `port`                             | The TCP port of the Managed Redis default database endpoint |
+| `default_database`                 | The full default_database block of the Managed Redis instance |
+| `redis_modules`                    | Redis modules configured on the default database            |
+| `primary_access_key`               | The primary access key for the Managed Redis default database |
+| `secondary_access_key`             | The secondary access key for the Managed Redis default database |
+| `geo_replication_id`               | The ID of the Managed Redis Geo-Replication resource        |
+| `geo_replication_group_name`       | Geo-replication group name applied to the Managed Redis databases |
+| `linked_managed_redis_ids`         | Managed Redis IDs linked in the geo-replication group       |
+| `secondary_id`                     | The ID of the secondary Managed Redis instance              |
+| `secondary_name`                   | The name of the secondary Managed Redis instance            |
+| `secondary_hostname`               | The hostname of the secondary Managed Redis instance        |
+| `secondary_port`                   | TCP port of the secondary Managed Redis default database    |
+| `secondary_database_id`            | The ID of the secondary Managed Redis default database      |
+| `secondary_primary_access_key`     | Primary access key for the secondary Managed Redis default database |
+| `secondary_secondary_access_key`   | Secondary access key for the secondary Managed Redis default database |
+| `secondary_redis_modules`          | Redis modules on the secondary Managed Redis default database |
 
 
 <!-- END_TF_DOCS -->
