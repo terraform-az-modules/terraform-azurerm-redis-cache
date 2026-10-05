@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v2.0.0] - 2026-10-05
+### :sparkles: New Features
+- [`371a4ac`](https://github.com/terraform-az-modules/terraform-azurerm-redis-cache/commit/371a4acbccd2cb2c9893c84149eda7854e694520) - Updated azure managed redis module *(PR [#39](https://github.com/terraform-az-modules/terraform-azurerm-redis-cache/pull/39) by [@vedant-cd](https://github.com/vedant-cd))*
+
+
 ## [1.0.2] - 2026-03-20
 
 ### Changes
@@ -14,3 +19,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Standardize pre-commit to antonbabenko v1.105.0
 - Set provider: none in tf-checks for validate-only CI
 - Bump required_version to >= 1.10.0
+[v2.0.0]: https://github.com/terraform-az-modules/terraform-azurerm-redis-cache/compare/v1.1.0...v2.0.0
