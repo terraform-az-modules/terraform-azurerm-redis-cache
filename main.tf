@@ -189,9 +189,9 @@ resource "azurerm_managed_redis_geo_replication" "main" {
 resource "azurerm_private_endpoint" "pep" {
   count               = var.enable && var.enable_private_endpoint ? 1 : 0
   name                = var.resource_position_prefix ? format("pe-%s", azurerm_managed_redis.main[0].name) : format("%s-pe", azurerm_managed_redis.main[0].name)
-  location            = var.location
+  location            = var.private_endpoint_location == null ? var.location : var.private_endpoint_location
   resource_group_name = var.resource_group_name
-  subnet_id           = var.subnet_id
+  subnet_id           = var.private_endpoint_subnet_id == null ? var.subnet_id : var.private_endpoint_subnet_id
   tags                = module.labels.tags
   private_dns_zone_group {
     name                 = var.resource_position_prefix ? format("dns-zone-group-%s", azurerm_managed_redis.main[0].name) : format("%s-dns-zone-group", azurerm_managed_redis.main[0].name)

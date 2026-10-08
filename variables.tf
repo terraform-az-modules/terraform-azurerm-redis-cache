@@ -392,6 +392,18 @@ variable "subnet_id" {
   description = "Subnet ID for the private endpoint."
 }
 
+variable "private_endpoint_location" {
+  type        = string
+  default     = null
+  description = "Azure region for the private endpoint. When null, uses var.location (same region as Managed Redis)."
+}
+
+variable "private_endpoint_subnet_id" {
+  type        = string
+  default     = null
+  description = "Subnet ID for the private endpoint. When null, uses var.subnet_id."
+}
+
 ##-----------------------------------------------------------------------------
 ## Diagnostic Settings & Monitoring
 ##-----------------------------------------------------------------------------
