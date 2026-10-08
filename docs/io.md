@@ -36,6 +36,8 @@
 | persistence\_aof\_backup\_frequency | Frequency of Append Only File (AOF) backups. Only possible value is 1s. Conflicts with persistence\_rdb\_backup\_frequency and geo\_replication\_group\_name. | `string` | `null` | no |
 | persistence\_rdb\_backup\_frequency | Frequency of Redis Database (RDB) backups. Possible values are 1h, 6h and 12h. Conflicts with persistence\_aof\_backup\_frequency and geo\_replication\_group\_name. | `string` | `null` | no |
 | private\_dns\_zone\_ids | The ID of the private DNS zone. | `string` | `null` | no |
+| private\_endpoint\_location | Azure region for the private endpoint. When null, uses var.location (same region as Managed Redis). | `string` | `null` | no |
+| private\_endpoint\_subnet\_id | Subnet ID for the private endpoint. When null, uses var.subnet\_id. | `string` | `null` | no |
 | public\_network\_access\_enabled | Allow public network access. Maps to public\_network\_access Enabled/Disabled. | `bool` | `false` | no |
 | redis\_modules | Redis modules to enable. Possible name values: RedisBloom, RedisTimeSeries, RediSearch, RedisJSON. Changing modules forces database recreation. Only RediSearch and RedisJSON are allowed with geo-replication. | <pre>list(object({<br>    name = string<br>    args = optional(string)<br>  }))</pre> | `[]` | no |
 | repository | Terraform current module repo | `string` | `"https://github.com/terraform-az-modules/terraform-azurerm-redis-cache"` | no |
